@@ -95,42 +95,47 @@ app_state = AppState()
 # Lifespan: startup + shutdown hooks (FastAPI recommended pattern)
 # ---------------------------------------------------------------------------
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Code before `yield` runs at startup; code after runs at shutdown.
-    This replaces the deprecated @app.on_event("startup") decorator.
-    """
-    # -- Startup --
-    logger.info("Starting CyberTrack API...")
-
-    # 1. Initialise the fraud scorer (loads ML models if USE_ML_MODELS=true)
-    app_state.scorer = FraudScorer(use_ml=USE_ML_MODELS)
-    logger.info(f"FraudScorer ready (ML models: {USE_ML_MODELS})")
-
-    # 2. Initialise Gemini client
-    if not GOOGLE_API_KEY:
-        logger.warning(
-            "GOOGLE_API_KEY not set in environment. "
-            "Gemini explanations will use the offline mock fallback."
-        )
-        app_state.gemini_available = False
-    else:
+def get_scorer() -> FraudScorer:
+    """Retrieve or lazily initialise the singleton FraudScorer instance."""
+    if app_state.scorer is None:
         try:
-            # Initialise the new google-genai client
+            app_state.scorer = FraudScorer(use_ml=USE_ML_MODELS)
+        except Exception as exc:
+            logger.error(f"Error creating FraudScorer: {exc}")
+            app_state.scorer = FraudScorer(use_ml=False)
+    return app_state.scorer
+
+
+def get_gemini_client():
+    """Retrieve or lazily initialise the Gemini client."""
+    if not GOOGLE_API_KEY:
+        app_state.gemini_available = False
+        return None
+
+    if app_state.gemini_model is None and not getattr(app_state, "_gemini_failed", False):
+        try:
             app_state.gemini_model = genai.Client(api_key=GOOGLE_API_KEY)
-            # Quick connectivity test
-            _ = app_state.gemini_model.models.list()
             app_state.gemini_available = True
             logger.info(f"Gemini model '{GEMINI_MODEL}' initialised successfully.")
         except Exception as exc:
             logger.error(f"Gemini initialisation failed: {exc}")
+            app_state._gemini_failed = True
             app_state.gemini_available = False
+            return None
 
+    return app_state.gemini_model
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Code before `yield` runs at startup; code after runs at shutdown.
+    """
+    logger.info("Starting CyberTrack API...")
+    get_scorer()
+    get_gemini_client()
     logger.info("CyberTrack API is ready.")
     yield
-
-    # -- Shutdown --
     logger.info("CyberTrack API shutting down.")
 
 
@@ -164,10 +169,14 @@ app.add_middleware(
 )
 
 
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
+
 @app.get("/", include_in_schema=False)
 async def root():
-    """Redirect bare root URL to the static HTML UI."""
-    return RedirectResponse(url="/static/index.html")
+    """Serve the static HTML UI directly or redirect to index."""
+    if os.path.exists("static/index.html"):
+        return FileResponse("static/index.html")
+    return RedirectResponse(url="/docs")
 
 
 # ---------------------------------------------------------------------------
@@ -274,8 +283,12 @@ def call_gemini(prompt_user: str) -> str:
     Raises:
         RuntimeError: On API errors (network, quota, safety filter, etc.)
     """
+    client = get_gemini_client()
+    if client is None:
+        raise RuntimeError("Gemini API key is not configured or client initialisation failed.")
+
     try:
-        response = app_state.gemini_model.models.generate_content(
+        response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt_user,
             config=genai_types.GenerateContentConfig(
