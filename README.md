@@ -1,5 +1,5 @@
 # CyberTrack — SMS & Phishing Fraud Detection Module
-**Final Year B.Tech CSE Project** | Rule-Based + ML Risk Scoring for Indian SMEs
+| Rule-Based + ML Risk Scoring for Indian SMEs
 
 ---
 
