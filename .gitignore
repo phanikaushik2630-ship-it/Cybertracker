@@ -1,0 +1,10 @@
+# Never commit these to version control
+.env
+__pycache__/
+*.py[cod]
+*.pkl
+*.egg-info/
+.venv/
+dist/
+models/*.pkl
+data/*.csv
