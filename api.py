@@ -152,9 +152,8 @@ app = FastAPI(
 )
 
 # Serve the HTML frontend from the static/ directory.
-# The UI is reachable at http://localhost:8000/
-# API endpoints (/check-message, /health, /docs) take priority over static files.
-app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Allow cross-origin requests (useful when connecting a React/HTML frontend)
 app.add_middleware(
