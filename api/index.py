@@ -1,7 +1,9 @@
 import sys
 import os
 
-# Add root folder to sys.path so imports resolve seamlessly on Vercel
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add root project folder to sys.path
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
-from api import app
+from main import app
