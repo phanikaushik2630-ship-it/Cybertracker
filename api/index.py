@@ -1,42 +1,56 @@
 """
 api/index.py — Vercel Serverless Entry Point for CyberTrack FastAPI
 ===================================================================
+Self-contained single file handler designed for Vercel Serverless Python environment.
 """
 
 import logging
 import os
 import sys
 import time
+import re
+from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
-from typing import Optional, Any
+from typing import Optional, Any, List, Dict
 
-# Ensure project root is in sys.path for relative/absolute imports
+# Set root dir in sys.path
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.insert(0, CURRENT_DIR)
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, HTMLResponse
+from fastapi.responses import JSONResponse, RedirectResponse, HTMLResponse
 from pydantic import BaseModel, Field, field_validator
 
 try:
     from google import genai
     from google.genai import types as genai_types
     GENAI_AVAILABLE = True
-except Exception as exc:
+except Exception:
     genai = None
     genai_types = None
     GENAI_AVAILABLE = False
 
-from fraud_detector import FraudScorer
-from fraud_detector.claude_explainer import (
-    build_claude_prompt,
-    parse_claude_response,
-    mock_claude_response,
-    FraudExplanation,
-)
+# Import local modules cleanly
+try:
+    from fraud_detector import FraudScorer
+    from fraud_detector.claude_explainer import (
+        build_claude_prompt,
+        parse_claude_response,
+        mock_claude_response,
+    )
+except ImportError:
+    from api.fraud_detector import FraudScorer
+    from api.fraud_detector.claude_explainer import (
+        build_claude_prompt,
+        parse_claude_response,
+        mock_claude_response,
+    )
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cybertrack.api")
@@ -45,13 +59,14 @@ load_dotenv()
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-USE_ML_MODELS  = os.getenv("USE_ML_MODELS", "false").lower() == "true"
+USE_ML_MODELS  = False
 
 
 class AppState:
     scorer: Optional[FraudScorer] = None
     gemini_model: Any = None
     gemini_available: bool = False
+    _gemini_failed: bool = False
 
 
 app_state = AppState()
@@ -60,7 +75,7 @@ app_state = AppState()
 def get_scorer() -> FraudScorer:
     if app_state.scorer is None:
         try:
-            app_state.scorer = FraudScorer(use_ml=USE_ML_MODELS)
+            app_state.scorer = FraudScorer(use_ml=False)
         except Exception as exc:
             logger.error(f"Error creating FraudScorer: {exc}")
             app_state.scorer = FraudScorer(use_ml=False)
@@ -72,7 +87,7 @@ def get_gemini_client():
         app_state.gemini_available = False
         return None
 
-    if app_state.gemini_model is None and not getattr(app_state, "_gemini_failed", False):
+    if app_state.gemini_model is None and not app_state._gemini_failed:
         try:
             app_state.gemini_model = genai.Client(api_key=GOOGLE_API_KEY)
             app_state.gemini_available = True
@@ -88,11 +103,9 @@ def get_gemini_client():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting CyberTrack API on Vercel Serverless...")
     get_scorer()
     get_gemini_client()
     yield
-    logger.info("Shutting down CyberTrack API...")
 
 
 app = FastAPI(
@@ -114,10 +127,15 @@ app.add_middleware(
 
 @app.get("/", include_in_schema=False)
 async def root():
-    html_file = os.path.join(ROOT_DIR, "static", "index.html")
-    if os.path.exists(html_file):
-        with open(html_file, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
+    paths = [
+        os.path.join(ROOT_DIR, "static", "index.html"),
+        os.path.join(CURRENT_DIR, "static", "index.html"),
+        "static/index.html",
+    ]
+    for html_file in paths:
+        if os.path.exists(html_file):
+            with open(html_file, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read())
     return RedirectResponse(url="/docs")
 
 
@@ -181,7 +199,7 @@ async def health_check() -> HealthResponse:
     return HealthResponse(
         status="ok",
         gemini_available=app_state.gemini_available,
-        ml_models_active=USE_ML_MODELS,
+        ml_models_active=False,
         model=GEMINI_MODEL,
         version=app.version,
     )
