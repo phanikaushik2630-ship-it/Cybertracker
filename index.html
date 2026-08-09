@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensures correct scaling on mobile screens -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="CyberTrack — Check whether a text message or link you received is a scam or fraud." />
+  <title>CyberTrack — Fraud & Phishing Checker</title>
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ================================================================
+       DESIGN TOKENS — Yellow & White Cyber Theme
+       ================================================================ */
+    :root {
+      --color-bg:           #090a0f;
+      --color-surface:      rgba(15, 18, 28, 0.82);
+      --color-surface-alt:  rgba(25, 30, 45, 0.88);
+      --color-border:       rgba(250, 204, 21, 0.35);
+      --color-border-glow:  rgba(250, 204, 21, 0.65);
+      --color-text:         #ffffff;
+      --color-text-muted:   #94a3b8;
+      
+      /* Theme Accents: Yellow & White */
+      --color-accent:       #facc15;
+      --color-accent-hover: #eab308;
+      --color-accent-glow:  rgba(250, 204, 21, 0.4);
+      --color-accent-text:  #000000;
+
+      /* Risk palette */
+      --color-safe:         #22c55e;
+      --color-safe-bg:      rgba(5, 46, 22, 0.88);
+      --color-safe-border:  #166534;
+      --color-warn:         #f59e0b;
+      --color-warn-bg:      rgba(28, 18, 0, 0.88);
+      --color-warn-border:  #92400e;
+      --color-danger:       #ef4444;
+      --color-danger-bg:    rgba(31, 0, 0, 0.88);
+      --color-danger-border:#7f1d1d;
+
+      --radius:    16px;
+      --radius-sm: 10px;
+      --shadow:    0 8px 32px 0 rgba(0, 0, 0, 0.7);
+      --transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+      font-size: clamp(14px, 2.5vw, 16px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem 3rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ================================================================
+       BACKGROUND VIDEO, CANVAS & OVERLAY
+       ================================================================ */
+    .bg-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -3;
+      overflow: hidden;
+      background: #090a0f;
+    }
+
+    #bg-video {
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+      opacity: 0.75; /* Clearly visible */
+      filter: brightness(0.85) contrast(1.1);
+    }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -2;
+      pointer-events: none;
+    }
+
+    .video-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      background: radial-gradient(circle at 50% 30%, rgba(9, 10, 15, 0.3) 0%, rgba(9, 10, 15, 0.75) 100%),
+                  linear-gradient(to bottom, rgba(9, 10, 15, 0.4), rgba(9, 10, 15, 0.85));
+      pointer-events: none;
+    }
+
+    /* ================================================================
+       LAYOUT
+       ================================================================ */
+    .page-wrapper {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      z-index: 1;
+    }
+
+    /* ================================================================
+       HEADER & LOGO (Yellow & White Cyber theme)
+       ================================================================ */
+    header {
+      text-align: center;
+      padding-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.6rem;
+      text-decoration: none;
+    }
+
+    .logo-icon-wrap {
+      width: 2.85rem;
+      height: 2.85rem;
+      background: linear-gradient(135deg, #facc15 0%, #eab308 50%, #ffffff 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 25px rgba(250, 204, 21, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.9);
+      animation: pulse-glow 3s infinite ease-in-out;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 18px rgba(250, 204, 21, 0.5); }
+      50% { box-shadow: 0 0 30px rgba(250, 204, 21, 0.85); }
+    }
+
+    .logo-icon-svg {
+      width: 1.7rem;
+      height: 1.7rem;
+      fill: #090a0f;
+    }
+
+    .logo-text {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 30%, #facc15 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 30px rgba(250, 204, 21, 0.4);
+    }
+
+    .tagline {
+      font-size: 0.92rem;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+      max-width: 480px;
+    }
+
+    .tagline strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    /* ================================================================
+       FORM CARD (Glassmorphism + Yellow Accents)
+       ================================================================ */
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 1.6rem;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .card:focus-within {
+      border-color: var(--color-border-glow);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7), 0 0 20px rgba(250, 204, 21, 0.25);
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-accent);
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Textarea */
+    #message-input {
+      width: 100%;
+      min-height: 135px;
+      background: var(--color-surface-alt);
+      border: 1.5px solid rgba(250, 204, 21, 0.25);
+      border-radius: var(--radius-sm);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      padding: 0.9rem 1rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    #message-input::placeholder { color: #64748b; }
+
+    #message-input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-glow);
+    }
+
+    /* Sender Row */
+    .sender-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: 0.95rem;
+    }
+
+    .sender-label {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #sender-input {
+      background: var(--color-surface-alt);
+      border: 1.5px solid rgba(250, 204, 21, 0.25);
+      border-radius: var(--radius-sm);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.65rem 0.9rem;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    #sender-input::placeholder { color: #64748b; }
+
+    #sender-input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-glow);
+    }
+
+    /* Submit Button (Vivid Yellow & White theme) */
+    #check-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.9rem 1.5rem;
+      background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+      color: #000000;
+      font-family: 'Outfit', 'Inter', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(250, 204, 21, 0.4);
+      transition: all var(--transition);
+      min-height: 50px;
+    }
+
+    #check-btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, #ffffff 0%, #facc15 100%);
+      box-shadow: 0 6px 28px rgba(250, 204, 21, 0.6);
+      transform: translateY(-1px);
+    }
+
+    #check-btn:active:not(:disabled) { transform: translateY(1px); }
+
+    #check-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 1.1rem;
+      height: 1.1rem;
+      border: 2.5px solid rgba(0, 0, 0, 0.2);
+      border-top-color: #000000;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ================================================================
+       RESULT CARD
+       ================================================================ */
+    #result-card {
+      display: none;
+      border-radius: var(--radius);
+      border: 1.5px solid;
+      padding: 1.5rem;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+      animation: slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    #result-card.safe   { background: var(--color-safe-bg);   border-color: var(--color-safe-border);   }
+    #result-card.warn   { background: var(--color-warn-bg);   border-color: var(--color-warn-border);   }
+    #result-card.danger { background: var(--color-danger-bg); border-color: var(--color-danger-border); }
+
+    .verdict-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.95rem;
+    }
+
+    .verdict-badge {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    .safe   .verdict-badge { background: #22c55e; color: #052e16; }
+    .warn   .verdict-badge { background: #facc15; color: #000000; }
+    .danger .verdict-badge { background: #ef4444; color: #ffffff; }
+
+    .verdict-icon { font-size: 1.4rem; }
+
+    .risk-score {
+      margin-left: auto;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .result-explanation {
+      font-size: 0.95rem;
+      line-height: 1.65;
+      color: #ffffff;
+      margin-bottom: 1.1rem;
+    }
+
+    .action-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      background: rgba(255, 255, 255, 0.08);
+      border-left: 3.5px solid var(--color-accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 0.9rem 1.1rem;
+    }
+
+    .action-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.05rem; }
+
+    .action-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-accent);
+      margin-bottom: 0.25rem;
+    }
+
+    .action-text {
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: #ffffff;
+    }
+
+    .signals-toggle {
+      margin-top: 1.1rem;
+      font-size: 0.82rem;
+      color: var(--color-accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-weight: 600;
+      transition: color var(--transition);
+    }
+
+    .signals-toggle:hover { color: #ffffff; }
+
+    .signals-list {
+      display: none;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.7rem;
+    }
+
+    .signals-list.open { display: flex; }
+
+    .signal-chip {
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(250, 204, 21, 0.15);
+      color: #facc15;
+      border: 1px solid rgba(250, 204, 21, 0.35);
+    }
+
+    .result-meta {
+      margin-top: 0.9rem;
+      font-size: 0.74rem;
+      color: var(--color-text-muted);
+      text-align: right;
+    }
+
+    #error-banner {
+      display: none;
+      background: rgba(31, 0, 0, 0.88);
+      border: 1.5px solid #ef4444;
+      border-radius: var(--radius-sm);
+      padding: 0.9rem 1.1rem;
+      font-size: 0.9rem;
+      color: #fca5a5;
+      backdrop-filter: blur(12px);
+      animation: slide-up 0.25s ease both;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      margin-top: 1rem;
+    }
+
+    footer a {
+      color: var(--color-accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 400px) {
+      .card, #result-card { padding: 1.2rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Ambient Video Background + Canvas Animation -->
+  <div class="bg-container">
+    <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous">
+      <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4" type="video/mp4" />
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-data-41551-large.mp4" type="video/mp4" />
+    </video>
+  </div>
+  <canvas id="bg-canvas"></canvas>
+  <div class="video-overlay"></div>
+
+  <div class="page-wrapper">
+
+    <!-- ── Header & New Shield Logo (Yellow & White Theme) ─────────── -->
+    <header>
+      <a href="#" class="logo" aria-label="CyberTrack Home">
+        <div class="logo-icon-wrap" aria-hidden="true">
+          <svg class="logo-icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+          </svg>
+        </div>
+        <span class="logo-text">CyberTrack</span>
+      </a>
+      <p class="tagline">
+        Paste a suspicious message or link below.<br>
+        We'll detect scams and explain risks in <strong>plain language</strong>.
+      </p>
+    </header>
+
+    <!-- ── Input Form ─────────────────────────────────────────────── -->
+    <section class="card" aria-label="Message input">
+      <p class="card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        </svg>
+        Message or Link to Analyze
+      </p>
+
+      <form id="check-form" novalidate>
+        <label for="message-input" class="sr-only">Paste your suspicious message or URL here</label>
+        <textarea
+          id="message-input"
+          name="message"
+          placeholder="Paste the suspicious message or link here…&#10;&#10;e.g. SECURITY ALERT: Your account restricted due to unusual activity. Verify at http://bank-secure-update.xyz"
+          aria-label="Suspicious message or URL"
+          aria-required="true"
+          autocomplete="off"
+          spellcheck="false"
+        ></textarea>
+
+        <div class="sender-row">
+          <label class="sender-label" for="sender-input">
+            Sender Header / Phone Number <span style="opacity:0.65">(optional)</span>
+          </label>
+          <input
+            type="text"
+            id="sender-input"
+            name="sender"
+            placeholder="e.g. BANK-ALRTX  or  +917900123456"
+            aria-label="Sender ID (optional)"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <button type="submit" id="check-btn" aria-live="polite">
+          <span class="spinner" id="btn-spinner" aria-hidden="true"></span>
+          <span id="btn-label">Analyze Risk Now</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- ── Error Banner ───────────────────────────────────────────── -->
+    <div id="error-banner" role="alert" aria-live="assertive"></div>
+
+    <!-- ── Result Card ────────────────────────────────────────────── -->
+    <article id="result-card" aria-live="polite" aria-label="Risk analysis result">
+      <div class="verdict-row">
+        <span class="verdict-icon" id="result-icon" aria-hidden="true"></span>
+        <span class="verdict-badge" id="result-badge"></span>
+        <span class="risk-score" id="result-score"></span>
+      </div>
+
+      <p class="result-explanation" id="result-explanation"></p>
+
+      <div class="action-box">
+        <span class="action-icon" id="action-icon" aria-hidden="true"></span>
+        <div>
+          <p class="action-label">Recommended Action</p>
+          <p class="action-text" id="result-action"></p>
+        </div>
+      </div>
+
+      <button
+        class="signals-toggle"
+        id="signals-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="signals-list"
+      >
+        ▸ Show detection signals
+      </button>
+      <div class="signals-list" id="signals-list" role="list"></div>
+
+      <p class="result-meta" id="result-meta"></p>
+    </article>
+
+    <footer>
+      <p>CyberTrack &nbsp;·&nbsp; SME Fraud Detection Assistant &nbsp;·&nbsp;
+        <a href="/docs" target="_blank" rel="noopener">API Docs</a>
+      </p>
+    </footer>
+
+  </div>
+
+  <script>
+    'use strict';
+
+    /* ================================================================
+       GUARANTEED ANIMATED CYBER PARTICLES BACKGROUND (Canvas + Video)
+       ================================================================ */
+    (function initBackgroundAnimation() {
+      const video = document.getElementById('bg-video');
+      if (video) {
+        video.play().catch(err => {
+          console.log('Autoplay restriction or video stream load notice:', err);
+        });
+      }
+
+      const canvas = document.getElementById('bg-canvas');
+      const ctx = canvas.getContext('2d');
+
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+
+      const particles = [];
+      const count = Math.min(Math.floor(width * 0.04), 45);
+
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.7,
+          vy: (Math.random() - 0.5) * 0.7,
+          radius: Math.random() * 2.2 + 1,
+          alpha: Math.random() * 0.5 + 0.2
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw connections
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 140) {
+              ctx.beginPath();
+              ctx.strokeStyle = `rgba(250, 204, 21, ${0.18 * (1 - dist / 140)})`;
+              ctx.lineWidth = 0.8;
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Draw particles
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.x < 0 || p.x > width) p.vx *= -1;
+          if (p.y < 0 || p.y > height) p.vy *= -1;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(250, 204, 21, ${p.alpha})`;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = '#facc15';
+          ctx.fill();
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    })();
+
+    /* ================================================================
+       FORM LOGIC
+       ================================================================ */
+    const API_URL = '/check-message';
+
+    const form          = document.getElementById('check-form');
+    const messageInput  = document.getElementById('message-input');
+    const senderInput   = document.getElementById('sender-input');
+    const checkBtn      = document.getElementById('check-btn');
+    const btnLabel      = document.getElementById('btn-label');
+    const btnSpinner    = document.getElementById('btn-spinner');
+    const errorBanner   = document.getElementById('error-banner');
+    const resultCard    = document.getElementById('result-card');
+    const signalsToggle = document.getElementById('signals-toggle');
+    const signalsList   = document.getElementById('signals-list');
+
+    const RISK_CONFIG = {
+      'Safe': {
+        cssClass  : 'safe',
+        icon      : '✅',
+        actionIcon: '💡',
+        badgeText : 'Safe Message',
+      },
+      'Suspicious': {
+        cssClass  : 'warn',
+        icon      : '⚠️',
+        actionIcon: '🔍',
+        badgeText : 'Suspicious',
+      },
+      'High Risk': {
+        cssClass  : 'danger',
+        icon      : '🚨',
+        actionIcon: '🛑',
+        badgeText : 'High Risk Fraud',
+      },
+    };
+
+    function resolveRiskConfig(verdict) {
+      if (RISK_CONFIG[verdict]) return RISK_CONFIG[verdict];
+      const v = (verdict || '').toLowerCase();
+      if (v.includes('safe')) return RISK_CONFIG['Safe'];
+      if (v.includes('high') || v.includes('critical') || v.includes('phishing')) return RISK_CONFIG['High Risk'];
+      return RISK_CONFIG['Suspicious'];
+    }
+
+    function setLoading(isLoading) {
+      checkBtn.disabled        = isLoading;
+      btnSpinner.style.display = isLoading ? 'block' : 'none';
+      btnLabel.textContent     = isLoading ? 'Analyzing Risk…' : 'Analyze Risk Now';
+    }
+
+    function showError(message) {
+      errorBanner.textContent   = message;
+      errorBanner.style.display = 'block';
+      clearTimeout(showError._timer);
+      showError._timer = setTimeout(() => { errorBanner.style.display = 'none'; }, 8000);
+    }
+
+    function hideError() {
+      errorBanner.style.display = 'none';
+    }
+
+    function renderResult(data) {
+      const config = resolveRiskConfig(data.verdict);
+
+      resultCard.className = '';
+      resultCard.classList.add(config.cssClass);
+
+      document.getElementById('result-icon').textContent  = config.icon;
+      document.getElementById('result-badge').textContent = config.badgeText;
+      document.getElementById('result-score').textContent = `Risk Score: ${Math.round(data.risk_score)}/100`;
+
+      document.getElementById('result-explanation').textContent = data.explanation;
+      document.getElementById('action-icon').textContent        = config.actionIcon;
+      document.getElementById('result-action').textContent     = data.action;
+
+      signalsList.innerHTML = '';
+      if (data.signals && data.signals.length > 0) {
+        data.signals.forEach(sig => {
+          const chip = document.createElement('span');
+          chip.className = 'signal-chip';
+          chip.setAttribute('role', 'listitem');
+          chip.textContent = sig.replace(/_/g, ' ').toLowerCase()
+            .replace(/\b\w/g, c => c.toUpperCase());
+          signalsList.appendChild(chip);
+        });
+        signalsToggle.style.display = 'flex';
+      } else {
+        signalsToggle.style.display = 'none';
+      }
+
+      const geminiLabel = data.gemini_used ? 'Gemini 2.0 AI' : 'Rule Engine';
+      document.getElementById('result-meta').textContent =
+        `Processed in ${data.processing_time_ms} ms · Explanation via ${geminiLabel}`;
+
+      resultCard.style.display = 'none';
+      requestAnimationFrame(() => {
+        resultCard.style.display = 'block';
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    signalsToggle.addEventListener('click', () => {
+      const isOpen = signalsList.classList.toggle('open');
+      signalsToggle.setAttribute('aria-expanded', isOpen);
+      signalsToggle.textContent = isOpen
+        ? '▾ Hide detection signals'
+        : '▸ Show detection signals';
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      hideError();
+
+      const message = messageInput.value.trim();
+      const sender  = senderInput.value.trim();
+
+      if (!message) {
+        messageInput.focus();
+        showError('Please paste a message or link before submitting.');
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const response = await fetch(API_URL, {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body   : JSON.stringify({ message, sender }),
+        });
+
+        if (!response.ok) {
+          let detail = `Server error (HTTP ${response.status})`;
+          try {
+            const err = await response.json();
+            detail = err.detail || err.error || detail;
+          } catch (_) {}
+          throw new Error(detail);
+        }
+
+        const data = await response.json();
+        renderResult(data);
+
+      } catch (err) {
+        if (err instanceof TypeError && err.message.includes('fetch')) {
+          showError('Cannot reach the CyberTrack API. Make sure the server is running on port 8000.');
+        } else {
+          showError(`Analysis failed: ${err.message}`);
+        }
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    messageInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        form.requestSubmit();
+      }
+    });
+  </script>
+</body>
+</html>
