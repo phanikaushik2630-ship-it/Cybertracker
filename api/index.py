@@ -1,12 +1,6 @@
 """
 api/index.py — Vercel Serverless Entry Point for CyberTrack FastAPI
 ===================================================================
-Vercel Serverless Python Function handler.
-Exposes:
-  - GET  /              → Static HTML UI
-  - POST /check-message → Fraud risk scoring + Gemini explanation
-  - GET  /health        → Health check endpoint
-  - GET  /docs          → Swagger API documentation
 """
 
 import logging
@@ -24,11 +18,17 @@ if ROOT_DIR not in sys.path:
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse, HTMLResponse
 from pydantic import BaseModel, Field, field_validator
-from google import genai
-from google.genai import types as genai_types
+
+try:
+    from google import genai
+    from google.genai import types as genai_types
+    GENAI_AVAILABLE = True
+except Exception as exc:
+    genai = None
+    genai_types = None
+    GENAI_AVAILABLE = False
 
 from fraud_detector import FraudScorer
 from fraud_detector.claude_explainer import (
@@ -38,11 +38,9 @@ from fraud_detector.claude_explainer import (
     FraudExplanation,
 )
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("cybertrack.api")
 
-# Load environment variables
 load_dotenv()
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -70,7 +68,7 @@ def get_scorer() -> FraudScorer:
 
 
 def get_gemini_client():
-    if not GOOGLE_API_KEY:
+    if not GOOGLE_API_KEY or not GENAI_AVAILABLE:
         app_state.gemini_available = False
         return None
 
@@ -78,7 +76,7 @@ def get_gemini_client():
         try:
             app_state.gemini_model = genai.Client(api_key=GOOGLE_API_KEY)
             app_state.gemini_available = True
-            logger.info(f"Gemini client initialised successfully.")
+            logger.info("Gemini client initialised successfully.")
         except Exception as exc:
             logger.error(f"Gemini initialisation failed: {exc}")
             app_state._gemini_failed = True
@@ -113,17 +111,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static files if directory exists
-static_path = os.path.join(ROOT_DIR, "static")
-if os.path.exists(static_path):
-    app.mount("/static", StaticFiles(directory=static_path), name="static")
-
 
 @app.get("/", include_in_schema=False)
 async def root():
     html_file = os.path.join(ROOT_DIR, "static", "index.html")
     if os.path.exists(html_file):
-        return FileResponse(html_file)
+        with open(html_file, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
     return RedirectResponse(url="/docs")
 
 
