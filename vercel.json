@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "rewrites": [
     {
       "source": "/check-message",
@@ -12,6 +11,10 @@
     {
       "source": "/api/(.*)",
       "destination": "/api/index.py"
+    },
+    {
+      "source": "/((?!api|check-message|health).*)",
+      "destination": "/index.html"
     }
   ]
 }
