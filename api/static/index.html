@@ -2,44 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <!-- Ensures correct scaling on mobile screens -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="CyberTrack — Check whether a text message or link you received is a scam or fraud." />
   <title>CyberTrack — Fraud & Phishing Checker</title>
 
-  <!-- Google Fonts: Inter & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
 
   <style>
-    /* ================================================================
-       DESIGN TOKENS — Yellow & White Cyber Theme
-       ================================================================ */
     :root {
       --color-bg:           #090a0f;
-      --color-surface:      rgba(15, 18, 28, 0.82);
-      --color-surface-alt:  rgba(25, 30, 45, 0.88);
+      --color-surface:      rgba(15, 18, 28, 0.85);
+      --color-surface-alt:  rgba(25, 30, 45, 0.9);
       --color-border:       rgba(250, 204, 21, 0.35);
       --color-border-glow:  rgba(250, 204, 21, 0.65);
       --color-text:         #ffffff;
       --color-text-muted:   #94a3b8;
       
-      /* Theme Accents: Yellow & White */
       --color-accent:       #facc15;
       --color-accent-hover: #eab308;
       --color-accent-glow:  rgba(250, 204, 21, 0.4);
       --color-accent-text:  #000000;
 
-      /* Risk palette */
       --color-safe:         #22c55e;
-      --color-safe-bg:      rgba(5, 46, 22, 0.88);
+      --color-safe-bg:      rgba(5, 46, 22, 0.9);
       --color-safe-border:  #166534;
       --color-warn:         #f59e0b;
-      --color-warn-bg:      rgba(28, 18, 0, 0.88);
+      --color-warn-bg:      rgba(28, 18, 0, 0.9);
       --color-warn-border:  #92400e;
       --color-danger:       #ef4444;
-      --color-danger-bg:    rgba(31, 0, 0, 0.88);
+      --color-danger-bg:    rgba(31, 0, 0, 0.9);
       --color-danger-border:#7f1d1d;
 
       --radius:    16px;
@@ -65,9 +58,6 @@
       overflow-x: hidden;
     }
 
-    /* ================================================================
-       BACKGROUND VIDEO, CANVAS & OVERLAY
-       ================================================================ */
     .bg-container {
       position: fixed;
       top: 0;
@@ -89,7 +79,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       object-fit: cover;
-      opacity: 0.75; /* Clearly visible */
+      opacity: 0.75;
       filter: brightness(0.85) contrast(1.1);
     }
 
@@ -115,9 +105,6 @@
       pointer-events: none;
     }
 
-    /* ================================================================
-       LAYOUT
-       ================================================================ */
     .page-wrapper {
       width: 100%;
       max-width: 640px;
@@ -127,9 +114,6 @@
       z-index: 1;
     }
 
-    /* ================================================================
-       HEADER & LOGO (Yellow & White Cyber theme)
-       ================================================================ */
     header {
       text-align: center;
       padding-top: 1rem;
@@ -193,9 +177,6 @@
       font-weight: 600;
     }
 
-    /* ================================================================
-       FORM CARD (Glassmorphism + Yellow Accents)
-       ================================================================ */
     .card {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -224,7 +205,6 @@
       gap: 0.4rem;
     }
 
-    /* Textarea */
     #message-input {
       width: 100%;
       min-height: 135px;
@@ -248,7 +228,6 @@
       box-shadow: 0 0 0 3px var(--color-accent-glow);
     }
 
-    /* Sender Row */
     .sender-row {
       display: flex;
       flex-direction: column;
@@ -282,7 +261,6 @@
       box-shadow: 0 0 0 3px var(--color-accent-glow);
     }
 
-    /* Submit Button (Vivid Yellow & White theme) */
     #check-btn {
       display: flex;
       align-items: center;
@@ -319,7 +297,6 @@
       box-shadow: none;
     }
 
-    /* Spinner */
     .spinner {
       width: 1.1rem;
       height: 1.1rem;
@@ -332,9 +309,6 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ================================================================
-       RESULT CARD
-       ================================================================ */
     #result-card {
       display: none;
       border-radius: var(--radius);
@@ -501,11 +475,9 @@
 </head>
 
 <body>
-  <!-- Ambient Video Background + Canvas Animation -->
   <div class="bg-container">
     <video id="bg-video" autoplay loop muted playsinline crossorigin="anonymous">
       <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4" type="video/mp4" />
-      <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-data-41551-large.mp4" type="video/mp4" />
     </video>
   </div>
   <canvas id="bg-canvas"></canvas>
@@ -513,7 +485,6 @@
 
   <div class="page-wrapper">
 
-    <!-- ── Header & New Shield Logo (Yellow & White Theme) ─────────── -->
     <header>
       <a href="#" class="logo" aria-label="CyberTrack Home">
         <div class="logo-icon-wrap" aria-hidden="true">
@@ -529,7 +500,6 @@
       </p>
     </header>
 
-    <!-- ── Input Form ─────────────────────────────────────────────── -->
     <section class="card" aria-label="Message input">
       <p class="card-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -543,7 +513,7 @@
         <textarea
           id="message-input"
           name="message"
-          placeholder="Paste the suspicious message or link here…&#10;&#10;e.g. SECURITY ALERT: Your account restricted due to unusual activity. Verify at http://bank-secure-update.xyz"
+          placeholder="Paste the suspicious message or link here…&#10;&#10;e.g. URGENT: Your power connection will be disconnected tonight due to unpaid bill. Update KYC immediately at http://power-update-bill.xyz or call officer."
           aria-label="Suspicious message or URL"
           aria-required="true"
           autocomplete="off"
@@ -558,7 +528,7 @@
             type="text"
             id="sender-input"
             name="sender"
-            placeholder="e.g. BANK-ALRTX  or  +917900123456"
+            placeholder="e.g. AK-POWERB  or  +919876543210"
             aria-label="Sender ID (optional)"
             autocomplete="off"
             spellcheck="false"
@@ -572,10 +542,8 @@
       </form>
     </section>
 
-    <!-- ── Error Banner ───────────────────────────────────────────── -->
     <div id="error-banner" role="alert" aria-live="assertive"></div>
 
-    <!-- ── Result Card ────────────────────────────────────────────── -->
     <article id="result-card" aria-live="polite" aria-label="Risk analysis result">
       <div class="verdict-row">
         <span class="verdict-icon" id="result-icon" aria-hidden="true"></span>
@@ -609,7 +577,7 @@
 
     <footer>
       <p>CyberTrack &nbsp;·&nbsp; SME Fraud Detection Assistant &nbsp;·&nbsp;
-        <a href="/docs" target="_blank" rel="noopener">API Docs</a>
+        <a href="https://github.com/phanikaushik2630-ship-it/Cybertracker" target="_blank" rel="noopener">GitHub Repo</a>
       </p>
     </footer>
 
@@ -618,15 +586,10 @@
   <script>
     'use strict';
 
-    /* ================================================================
-       GUARANTEED ANIMATED CYBER PARTICLES BACKGROUND (Canvas + Video)
-       ================================================================ */
     (function initBackgroundAnimation() {
       const video = document.getElementById('bg-video');
       if (video) {
-        video.play().catch(err => {
-          console.log('Autoplay restriction or video stream load notice:', err);
-        });
+        video.play().catch(err => {});
       }
 
       const canvas = document.getElementById('bg-canvas');
@@ -656,8 +619,6 @@
 
       function animate() {
         ctx.clearRect(0, 0, width, height);
-
-        // Draw connections
         for (let i = 0; i < particles.length; i++) {
           for (let j = i + 1; j < particles.length; j++) {
             const dx = particles[i].x - particles[j].x;
@@ -675,7 +636,6 @@
           }
         }
 
-        // Draw particles
         for (let i = 0; i < particles.length; i++) {
           const p = particles[i];
           p.x += p.vx;
@@ -699,10 +659,103 @@
     })();
 
     /* ================================================================
-       FORM LOGIC
+       CLIENT-SIDE RULE ENGINE (Instant Web App Execution)
        ================================================================ */
-    const API_URL = '/check-message';
+    function analyzeClientSide(message, sender) {
+      const tStart = performance.now();
+      let penalty = 0;
+      const signals = [];
+      const detected_urls = [];
 
+      const SUSPICIOUS_TLDS = /\.(xyz|top|club|site|online|tech|info|work|live|icu|tk|ml|ga|cf|gq|pw|cc|bid|loan|win|date|review|stream|download)\b/i;
+      const URGENCY_PHRASES = /\b(act now|urgent|urgently|immediately|expires? in|last (chance|warning|reminder)|within \d+ (hour|minute|day)|account (suspended|blocked|deactivated|restricted)|limited time|do not ignore|your account will be|deadline|security alert|unusual activity|suspicious (activity|login|transaction)|restore (your )?access|restore access|access (has been|will be) (restricted|blocked|suspended)|temporarily (restricted|blocked|suspended|limited)|verify (your )?(account|identity|details?) (within|immediately|now)|failure to (comply|verify|respond)|action (required|needed)|account (will be|has been) (closed|terminated|restricted))\b/i;
+      const PAYMENT_PHRASES = /\b(send money|transfer (rs\.?|inr|₹)?\s*[\d,]+|pay now|upi (id|link|payment)|wallet|recharge|cashback (credited|pending)|click to (pay|receive)|prize money|lottery (won|winner)|lucky draw|redeem now|claim your (reward|prize|cash))\b/i;
+      const OTP_HARVEST_PHRASES = /\b(share your otp|enter (your )?otp|verify (your )?(otp|pin|account|details?|information)|do not share|otp is confidential|confirm (your )?(identity|account|details?)|update (your )?kyc|kyc (pending|expired|verification)|complete (your )?(verification|kyc)|account verification|submit (your )?(aadhaar|pan|bank) (number|details|card)|click (here|below|the link) to verify|tap to verify|re-?verify|re-?activate (your )?account)\b/i;
+      const AUTHORITY_IMPERSONATION = /\b(trai|rbi|income tax (dept|department|notice)|it department|uidai|epfo|epf|aadhaar (update|link|verify|expired)|pan card (link|verify|block)|government of india|ministry of|sebi|irda|npci)\b/i;
+      const ACCOUNT_SECURITY_THREAT = /\b(your (bank )?account|account (number|ending|no\.?)|(bank|credit|debit) (account|card)|net.?banking|transaction (has been|was) (blocked|flagged|declined)|(login|sign.?in) attempt|unauthori[sz]ed (access|transaction|activity)|account (security|protection)|security (breach|concern|measure)|unusual (login|access|transaction)|suspicious (login|access))\b/i;
+
+      const DLT_HEADER_PATTERN = /^[A-Z]{2}-[A-Z0-9]{1,6}$/i;
+      const FOREIGN_PREFIX = /^\+(?!91)\d{1,3}/;
+      const URL_PATTERN = /https?:\/\/[^\s]+|www\.[^\s]+/gi;
+
+      const foundUrls = message.match(URL_PATTERN) || [];
+      foundUrls.forEach(url => {
+        detected_urls.push(url);
+        if (SUSPICIOUS_TLDS.test(url)) {
+          penalty += 20;
+          signals.push('SUSPICIOUS_TLD');
+        }
+      });
+
+      if (URGENCY_PHRASES.test(message)) {
+        penalty += 18;
+        signals.push('URGENCY_LANGUAGE');
+      }
+      if (PAYMENT_PHRASES.test(message)) {
+        penalty += 20;
+        signals.push('PAYMENT_REQUEST');
+      }
+      if (OTP_HARVEST_PHRASES.test(message)) {
+        penalty += 30;
+        signals.push('OTP_CREDENTIAL_HARVEST');
+      }
+      if (AUTHORITY_IMPERSONATION.test(message)) {
+        penalty += 25;
+        signals.push('AUTHORITY_IMPERSONATION');
+      }
+      if (ACCOUNT_SECURITY_THREAT.test(message)) {
+        penalty += 20;
+        signals.push('ACCOUNT_SECURITY_THREAT');
+      }
+
+      if (sender) {
+        const s = sender.trim();
+        if (/^\d{10}$/.test(s)) {
+          penalty += 20;
+          signals.push('SENDER_PLAIN_MOBILE');
+        } else if (FOREIGN_PREFIX.test(s)) {
+          penalty += 25;
+          signals.push('SENDER_FOREIGN_NUMBER');
+        } else if (!DLT_HEADER_PATTERN.test(s)) {
+          penalty += 18;
+          signals.push('SENDER_MALFORMED_HEADER');
+        }
+      }
+
+      const final_score = Math.round(Math.min(penalty / 150.0, 1.0) * 100.0 * 100) / 100;
+      let verdict = "Safe";
+      let explanation = "No major suspicious signals detected in this message. It appears to be a routine transaction or standard notification.";
+      let action = "No action needed — this message appears safe. Always stay alert and never share OTPs or credentials over text.";
+
+      if (final_score > 50) {
+        verdict = "High Risk";
+        explanation = "This message contains strong fraud signals such as urgent account restriction threats, suspicious domain patterns, or unverified sender headers.";
+        action = "Do not click any links or share personal information. Delete this message immediately and verify via official bank contacts.";
+      } else if (final_score > 25) {
+        verdict = "Suspicious";
+        explanation = "This message contains warning signs like urgency pressure or unverified sender details.";
+        action = "Exercise caution. Confirm details with your official service provider before taking action.";
+      }
+
+      const elapsed = Math.round((performance.now() - tStart) * 100) / 100;
+
+      return {
+        verdict,
+        explanation,
+        action,
+        risk_score: final_score,
+        risk_label: final_score > 50 ? 'High Risk [DANGER]' : (final_score > 25 ? 'Moderate Risk [WARNING]' : 'Low Risk [SAFE]'),
+        signals,
+        detected_urls,
+        score_breakdown: { rule_score: final_score, sms_ml_score: 0, url_ml_score: 0, ml_active: false },
+        gemini_used: false,
+        processing_time_ms: elapsed
+      };
+    }
+
+    /* ================================================================
+       UI HANDLER
+       ================================================================ */
     const form          = document.getElementById('check-form');
     const messageInput  = document.getElementById('message-input');
     const senderInput   = document.getElementById('sender-input');
@@ -715,24 +768,9 @@
     const signalsList   = document.getElementById('signals-list');
 
     const RISK_CONFIG = {
-      'Safe': {
-        cssClass  : 'safe',
-        icon      : '✅',
-        actionIcon: '💡',
-        badgeText : 'Safe Message',
-      },
-      'Suspicious': {
-        cssClass  : 'warn',
-        icon      : '⚠️',
-        actionIcon: '🔍',
-        badgeText : 'Suspicious',
-      },
-      'High Risk': {
-        cssClass  : 'danger',
-        icon      : '🚨',
-        actionIcon: '🛑',
-        badgeText : 'High Risk Fraud',
-      },
+      'Safe': { cssClass: 'safe', icon: '✅', actionIcon: '💡', badgeText: 'Safe Message' },
+      'Suspicious': { cssClass: 'warn', icon: '⚠️', actionIcon: '🔍', badgeText: 'Suspicious' },
+      'High Risk': { cssClass: 'danger', icon: '🚨', actionIcon: '🛑', badgeText: 'High Risk Fraud' },
     };
 
     function resolveRiskConfig(verdict) {
@@ -803,9 +841,7 @@
     signalsToggle.addEventListener('click', () => {
       const isOpen = signalsList.classList.toggle('open');
       signalsToggle.setAttribute('aria-expanded', isOpen);
-      signalsToggle.textContent = isOpen
-        ? '▾ Hide detection signals'
-        : '▸ Show detection signals';
+      signalsToggle.textContent = isOpen ? '▾ Hide detection signals' : '▸ Show detection signals';
     });
 
     form.addEventListener('submit', async (event) => {
@@ -823,34 +859,28 @@
 
       setLoading(true);
 
+      // Attempt API call; fallback seamlessly to client-side rule engine if API returns 405/error
       try {
-        const response = await fetch(API_URL, {
+        const response = await fetch('/check-message', {
           method : 'POST',
           headers: { 'Content-Type': 'application/json' },
           body   : JSON.stringify({ message, sender }),
         });
 
-        if (!response.ok) {
-          let detail = `Server error (HTTP ${response.status})`;
-          try {
-            const err = await response.json();
-            detail = err.detail || err.error || detail;
-          } catch (_) {}
-          throw new Error(detail);
+        if (response.ok) {
+          const data = await response.json();
+          renderResult(data);
+          setLoading(false);
+          return;
         }
+      } catch (_) {}
 
-        const data = await response.json();
-        renderResult(data);
-
-      } catch (err) {
-        if (err instanceof TypeError && err.message.includes('fetch')) {
-          showError('Cannot reach the CyberTrack API. Make sure the server is running on port 8000.');
-        } else {
-          showError(`Analysis failed: ${err.message}`);
-        }
-      } finally {
+      // Fallback: Client-Side Rule Engine execution (for GitHub Pages static host)
+      setTimeout(() => {
+        const localResult = analyzeClientSide(message, sender);
+        renderResult(localResult);
         setLoading(false);
-      }
+      }, 300);
     });
 
     messageInput.addEventListener('keydown', (e) => {

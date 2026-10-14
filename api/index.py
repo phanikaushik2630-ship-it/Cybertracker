@@ -169,58 +169,19 @@ app.add_middleware(
 
 @app.get("/", include_in_schema=False)
 async def root():
-    return HTMLResponse(content="""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CyberTrack — Fraud & Phishing Checker</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet" />
-  <style>
-    :root { --bg: #090a0f; --card: rgba(18, 20, 29, 0.85); --accent: #facc15; --text: #ffffff; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
-    .card { background: var(--card); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 16px; padding: 2rem; width: 100%; max-width: 600px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-    h1 { font-family: 'Outfit', sans-serif; color: var(--accent); font-size: 2rem; margin-bottom: 0.5rem; text-align: center; }
-    p.desc { text-align: center; color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; }
-    textarea, input { width: 100%; background: #181b26; border: 1px solid #2e3448; border-radius: 8px; color: #fff; padding: 0.8rem; font-size: 0.95rem; margin-bottom: 1rem; box-sizing: border-box; }
-    button { width: 100%; background: var(--accent); color: #000; font-weight: 700; border: none; padding: 0.9rem; border-radius: 8px; cursor: pointer; font-size: 1rem; }
-    #result { margin-top: 1.5rem; display: none; padding: 1rem; border-radius: 8px; border: 1px solid; }
-    .safe { background: #052e16; border-color: #166534; }
-    .warn { background: #1c1200; border-color: #92400e; }
-    .danger { background: #1f0000; border-color: #7f1d1d; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>🛡️ CyberTrack</h1>
-    <p class="desc">Paste a suspicious message or link to check fraud risk in real-time.</p>
-    <form id="f">
-      <textarea id="m" rows="4" placeholder="e.g. SECURITY ALERT: Your account restricted. Verify at http://bank-update.xyz"></textarea>
-      <input id="s" placeholder="Sender ID (optional, e.g. BANK-ALRT)" />
-      <button type="submit">Analyze Risk Now</button>
-    </form>
-    <div id="result"></div>
-  </div>
-  <script>
-    document.getElementById('f').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const m = document.getElementById('m').value;
-      const s = document.getElementById('s').value;
-      const res = await fetch('/check-message', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({message: m, sender: s}) });
-      const data = await res.json();
-      const r = document.getElementById('result');
-      r.style.display = 'block';
-      let cls = 'safe';
-      if (data.risk_score > 50) cls = 'danger';
-      else if (data.risk_score > 25) cls = 'warn';
-      r.className = cls;
-      r.innerHTML = '<h3>Verdict: ' + data.verdict + ' (Score: ' + data.risk_score + '/100)</h3><p>' + data.explanation + '</p><p><strong>Action:</strong> ' + data.action + '</p>';
-    });
-  </script>
-</body>
-</html>
-""")
+    candidate_paths = [
+        os.path.join(os.path.dirname(__file__), "static", "index.html"),
+        os.path.join(os.path.dirname(__file__), "..", "index.html"),
+        os.path.join(os.getcwd(), "index.html"),
+    ]
+    for path in candidate_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return HTMLResponse(content=f.read())
+            except Exception:
+                pass
+    return HTMLResponse(content="<h1>CyberTrack</h1><p>UI loading error. Check static files.</p>")
 
 
 class CheckMessageRequest(BaseModel):
