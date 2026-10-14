@@ -168,6 +168,8 @@ app.add_middleware(
 
 
 @app.get("/", include_in_schema=False)
+@app.get("/api", include_in_schema=False)
+@app.get("/api/index.py", include_in_schema=False)
 async def root():
     candidate_paths = [
         os.path.join(os.path.dirname(__file__), "static", "index.html"),
@@ -190,11 +192,13 @@ class CheckMessageRequest(BaseModel):
 
 
 @app.get("/health")
+@app.get("/api/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
 
 
 @app.post("/check-message")
+@app.post("/api/check-message")
 async def check_message(payload: CheckMessageRequest):
     t_start = time.perf_counter()
     b = calculate_risk(payload.message, payload.sender)
